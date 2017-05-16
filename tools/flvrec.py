@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 ##
 ##  flvrec.py - VNC to FLV recording tool.
 ##
@@ -58,7 +58,7 @@ def flvrec(filename, host='localhost', port=5900,
         retval = 1
     except RFBError, e:
         print >>sys.stderr, 'RFB error:', e
-        retval = 1
+        retval = 2
     if pid:
         os.killpg(os.getpgid(pid), signal.SIGTERM)
     if verbose:
@@ -75,11 +75,11 @@ def main(argv):
         print argv[0], vnc2flv.__version__
         print ('usage: %s [-d] [-q] [-o filename] [-r framerate] [-K keyframe]'
                ' [-e vnc_encoding] [-P vnc_pwdfile] [-N]'
-               ' [-B blocksize] [-C clipping] [-S subprocess]'
+               ' [-B blocksize] [-C clipping] [-S subprocess] [-R retry_max_times]'
                ' [host[:display] [port]]' % argv[0])
         return 100
     try:
-        (opts, args) = getopt.getopt(argv[1:], 'dqo:r:K:t:e:P:NB:C:S:')
+        (opts, args) = getopt.getopt(argv[1:], 'dqo:r:K:t:e:P:NB:C:S:R:')
     except getopt.GetoptError:
         return usage()
     debug = 0
@@ -93,6 +93,7 @@ def main(argv):
     blocksize = 32
     clipping = None
     cmdline = None
+    retry_cnt = 1
     (host, port) = ('localhost', 5900)
     for (k, v) in opts:
         if k == '-d': debug += 1
@@ -106,6 +107,7 @@ def main(argv):
         elif k == '-B': blocksize = int(v)
         elif k == '-C': clipping = str2clip(v)
         elif k == '-S': cmdline = v
+        elif k == '-R': retry_cnt = int(v)
     if not cursor:
         preferred_encoding += (-232,-239,)
     if 1 <= len(args):
@@ -117,9 +119,34 @@ def main(argv):
             host = args[0]
     if 2 <= len(args):
         port = int(args[1])
-    return flvrec(filename, host, port, framerate=framerate, keyframe=keyframe,
-                  preferred_encoding=preferred_encoding, pwdfile=pwdfile,
-                  blocksize=blocksize, clipping=clipping, cmdline=cmdline,
-                  debug=debug, verbose=verbose)
+
+
+
+
+
+    # Doing retry when errors: Socket error(power cycle) or RFB error(also may caused by target power cycle , which causes VNC disconnected for a while.)
+    interval=15 # sec between each retry
+    arr=filename.split('.flv')
+    base_fname=arr[0]
+    if len(arr) <= 1 :
+	print 'Error: the filename should be in format of xxxx.flv'
+        return 4;
+
+    i =1
+    while i <= retry_cnt:
+	    if i > 1:
+		filename="%s_%d.flv" %( base_fname, i ) # save as a new file name
+	    ret =  flvrec(filename, host, port, framerate=framerate, keyframe=keyframe,
+        	          preferred_encoding=preferred_encoding, pwdfile=pwdfile,
+                	  blocksize=blocksize, clipping=clipping, cmdline=cmdline,
+	                  debug=debug, verbose=verbose)
+            i = i + 1
+            if retry_cnt == 1 or ret == 0:
+                return ret;
+            else:
+                print ('[Warning]: VNC disconnected. ret code is %d  ')%( ret )
+                print ('[Warning]: Retry recording after %d sec, retry counter = %d, total retry is %d ')%( interval, i, retry_cnt ) 
+                time.sleep(interval)
+    return 3; # exceed retry, too many RFB errors
 
 if __name__ == "__main__": sys.exit(main(sys.argv))
