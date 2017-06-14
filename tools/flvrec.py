@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 ##
 ##  flvrec.py - VNC to FLV recording tool.
 ##
