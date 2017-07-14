@@ -32,7 +32,8 @@ def flvrec(filename, host='localhost', port=5900,
                               pwdcache=pwdcache, preferred_encoding=preferred_encoding,
                               debug=debug)
     if verbose:
-        print >>sys.stderr, 'start recording'
+	print 'start recording' #make code able to run in Python 2.7
+        #print >>sys.stderr, 'start recording'
     pid = 0
     if cmdline:
         pid = os.fork()
@@ -54,15 +55,18 @@ def flvrec(filename, host='localhost', port=5900,
     except KeyboardInterrupt:
         pass
     except socket.error, e:
-        print >>sys.stderr, 'Socket error:', e
+	print 'Socket error', e
+        #print >>sys.stderr, 'Socket error:', e
         retval = 1
     except RFBError, e:
-        print >>sys.stderr, 'RFB error:', e
+	print 'RFB error', e
+        #print >>sys.stderr, 'RFB error:', e
         retval = 2
     if pid:
         os.killpg(os.getpgid(pid), signal.SIGTERM)
     if verbose:
-        print >>sys.stderr, 'stop recording'
+	print 'stop recording'
+        #print >>sys.stderr, 'stop recording'
     writer.close()
     fp.close()
     return retval
