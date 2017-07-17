@@ -46,6 +46,7 @@ def flvrec(filename, host='localhost', port=5900,
         def sigint_handler(sig, frame):
             raise KeyboardInterrupt
         signal.signal(signal.SIGINT, sigint_handler)
+        signal.signal(signal.SIGTERM, sigint_handler) # make sure graceful terminated, when running in background and killed by signal
         client.open()
         try:
             while 1:
